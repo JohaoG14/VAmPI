@@ -1,0 +1,38 @@
+name: SAST
+on: [push, pull_request]
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  sast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install bandit semgrep
+
+      - name: Bandit - reporte
+        run: bandit -r . -f html -o bandit.html || true
+      - name: Semgrep - resultados en el log
+        run: semgrep scan --config p/python --config p/flask --config p/owasp-top-ten || true
+      - name: Semgrep - reporte SARIF
+        run: semgrep scan --config p/python --config p/flask --config p/owasp-top-ten --sarif -o semgrep.sarif || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: reportes-sast
+          path: |
+            bandit.html
+            semgrep.sarif
+
+      - name: Publicar Semgrep en Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+
+      - name: Quality gate
+        run: bandit -r . -ll
