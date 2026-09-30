@@ -10,7 +10,8 @@ from sqlalchemy.sql import text
 
 class User(db.Model):
     __tablename__ = 'users'
-    id = db.Column(db.Integer, primary_key=True, unique=True, autoincrement=True)
+    id = db.Column(db.Integer, primary_key=True,
+                   unique=True, autoincrement=True)
     username = db.Column(db.String(128), unique=True, nullable=False)
     password = db.Column(db.String(128), nullable=False)
     email = db.Column(db.String(128), nullable=False)
@@ -45,7 +46,8 @@ class User(db.Model):
     @staticmethod
     def decode_auth_token(auth_token):
         try:
-            payload = jwt.decode(auth_token, vuln_app.app.config.get('SECRET_KEY'), algorithms=["HS256"])
+            payload = jwt.decode(auth_token, vuln_app.app.config.get(
+                'SECRET_KEY'), algorithms=["HS256"])
             return payload
         except jwt.ExpiredSignatureError:
             return {'error': 'Signature expired. Please log in again.'}
@@ -69,11 +71,12 @@ class User(db.Model):
     @staticmethod
     def get_user(username):
         if vuln:  # SQLi Injection
-            user_query = f"SELECT * FROM users WHERE username = '{username}'"
-            query = db.session.execute(text(user_query))
+            user_query = text("SELECT * FROM users WHERE username = :username")
+            query = db.session.execute(user_query, {"username": username})
             ret = query.fetchone()
             if ret:
-                fin_query = '{"username": "%s", "email": "%s"}' % (ret[1], ret[3])
+                fin_query = '{"username": "%s", "email": "%s"}' % (
+                    ret[1], ret[3])
             else:
                 fin_query = None
         else:
@@ -82,9 +85,11 @@ class User(db.Model):
 
     @staticmethod
     def register_user(username, password, email, admin=False):
-        new_user = User(username=username, password=password, email=email, admin=admin)
+        new_user = User(username=username, password=password,
+                        email=email, admin=admin)
         randomint = str(randrange(100))
-        new_user.books = [Book(book_title="bookTitle" + randomint, secret_content="secret for bookTitle" + randomint)]
+        new_user.books = [Book(book_title="bookTitle" + randomint,
+                               secret_content="secret for bookTitle" + randomint)]
         db.session.add(new_user)
         db.session.commit()
 
